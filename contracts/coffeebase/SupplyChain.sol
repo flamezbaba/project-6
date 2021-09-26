@@ -6,7 +6,7 @@ import "../coffeeaccesscontrol/RetailerRole.sol";
 
 contract SupplyChain is ConsumerRole, DistributorRole, FarmerRole, RetailerRole {
     // Define 'owner'
-    address owner;
+    address contractOwner;
 
     // Define a variable called 'upc' for Universal Product Code (UPC)
     uint256 upc;
@@ -67,7 +67,7 @@ contract SupplyChain is ConsumerRole, DistributorRole, FarmerRole, RetailerRole 
     // Define a modifer that checks to see if msg.sender == owner of the contract
     modifier onlyOwner() {
         require(
-            msg.sender == owner,
+            msg.sender == contractOwner,
             "Only the owner can perform this operation"
         );
         _;
@@ -149,15 +149,15 @@ contract SupplyChain is ConsumerRole, DistributorRole, FarmerRole, RetailerRole 
     // and set 'sku' to 1
     // and set 'upc' to 1
     constructor() public payable {
-        owner = msg.sender;
+        contractOwner = msg.sender;
         sku = 1;
         upc = 1;
     }
 
     // Define a function 'kill' if required
     function kill() public {
-        if (msg.sender == owner) {
-            selfdestruct(owner);
+        if (msg.sender == contractOwner) {
+            selfdestruct(contractOwner);
         }
     }
 
@@ -175,7 +175,7 @@ contract SupplyChain is ConsumerRole, DistributorRole, FarmerRole, RetailerRole 
         items[_upc] = Item({
             sku: sku,
             upc: _upc,
-            ownerID: owner,
+            ownerID: contractOwner,
             originFarmerID: _originFarmerID,
             originFarmName: _originFarmName,
             originFarmInformation: _originFarmInformation,
@@ -226,11 +226,12 @@ contract SupplyChain is ConsumerRole, DistributorRole, FarmerRole, RetailerRole 
         onlyDistributor
         forSale(_upc)
         paidEnough(items[_upc].productPrice)
+        checkValue(_upc)
     {
         // Update the appropriate fields - ownerID, distributorID, itemState
         // Transfer money to farmer
         // emit the appropriate event
-        items[_upc].ownerID = owner;
+        items[_upc].ownerID = contractOwner;
         items[_upc].distributorID = msg.sender;
         items[_upc].itemState = State.Sold;
 
@@ -251,14 +252,14 @@ contract SupplyChain is ConsumerRole, DistributorRole, FarmerRole, RetailerRole 
     }
 
     function receiveItem(uint256 _upc) public onlyRetailer shipped(_upc) {
-        items[_upc].ownerID = owner;
+        items[_upc].ownerID = contractOwner;
         items[_upc].retailerID = msg.sender;
         items[_upc].itemState = State.Received;
         emit Received(_upc);
     }
 
     function purchaseItem(uint256 _upc) public onlyConsumer received(_upc) {
-        items[_upc].ownerID = owner;
+        items[_upc].ownerID = contractOwner;
         items[_upc].consumerID = msg.sender;
         items[_upc].itemState = State.Purchased;
         emit Purchased(_upc);
